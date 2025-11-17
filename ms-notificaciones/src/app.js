@@ -7,16 +7,22 @@ const correlationIdMiddleware = require('./api/middlewares/correlationId.middlew
 const amqp = require('amqplib'); 
 const notificacionService = require('./domain/services/notificacion.service'); //  Importar el servicio de notificaciones
 
+// REQUIRES PARA SWAGGER
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const path = require('path');
+
 const PORT = process.env.PORT || 3003;
 
 const app = express();
+
+// CONFIGURACIÓN YAML SWAGGER
+const swaggerPath = path.join(__dirname, '../docs/swagger.yaml');
+const swaggerDocument = YAML.load(swaggerPath);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(express.json());
 app.use(correlationIdMiddleware); // Middleware para manejar el Correlation ID
 app.use('/notificaciones', notificacionesRouter);
-
-// Mantenemos la API (quizás para futuras rutas /status)
-// const notificacionesRouter = require('./api/routes/notificaciones.routes');
-// app.use('/notificaciones', notificacionesRouter); // <-- Comentamos esto, ya no recibimos POSTs
 app.use(errorHandler);
 
 // --- Lógica del Consumidor de RabbitMQ ---

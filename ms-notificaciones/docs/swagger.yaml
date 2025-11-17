@@ -1,0 +1,59 @@
+openapi: 3.0.0
+info:
+  title: Microservicio de Notificaciones (ms-notificaciones)
+  description: Servicio encargado del envío de notificaciones.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3003
+    description: Servidor Local (Docker)
+
+paths:
+  /notificaciones/{canal}:
+    post:
+      summary: Enviar notificación manual
+      description: Envía una notificación especificando el canal (ej. email, sms).
+      tags:
+        - Notificaciones
+      parameters:
+        - in: path
+          name: canal
+          schema:
+            type: string
+            enum: [email, sms]
+          required: true
+          description: Canal de envío (ej. 'email')
+          example: email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - mensaje
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "alumno@utp.edu.pe"
+                  description: Correo del destinatario
+                asunto:
+                  type: string
+                  example: "Prueba de Swagger"
+                mensaje:
+                  type: string
+                  example: "Este es un mensaje enviado desde la documentación."
+      responses:
+        '200':
+          description: Notificación procesada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Notificación enviada por email"
+        '500':
+          description: Error al enviar

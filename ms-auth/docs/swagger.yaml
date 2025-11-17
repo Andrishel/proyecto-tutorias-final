@@ -1,0 +1,48 @@
+openapi: 3.0.0
+info:
+  title: Microservicio de Autenticación (ms-auth)
+  description: API encargada de gestionar la autenticación de usuarios y emisión de tokens JWT.
+  version: 1.0.0
+servers:
+  - url: http://localhost:4000
+    description: Servidor Local (Docker)
+
+paths:
+  /auth/token:
+    post:
+      summary: Iniciar sesión
+      description: Valida credenciales y retorna un token JWT de acceso.
+      tags:
+        - Autenticación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "ana.torres"
+                  description: Nombre de usuario registrado
+                password:
+                  type: string
+                  format: password
+                  example: "password_ana"
+                  description: Contraseña del usuario
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Token JWT para usar en otras peticiones
+        '401':
+          description: Credenciales inválidas

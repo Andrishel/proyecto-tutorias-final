@@ -1,0 +1,52 @@
+openapi: 3.0.0
+info:
+  title: Microservicio de Tutorías (ms-tutorias)
+  description: Orquestador principal. Gestionaa la creación de solicitudes.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Servidor Local (Docker)
+
+security:
+  - bearerAuth: []
+
+paths:
+  /tutorias:
+    post:
+      summary: Solicitar una nueva tutoría
+      description: Crea una solicitud, valida agenda y notifica. Requiere Token JWT.
+      tags:
+        - Tutorías
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idTutor
+                - materia
+                - fecha
+              properties:
+                idTutor:
+                  type: string
+                  example: "t09876"
+                materia:
+                  type: string
+                  example: "Cálculo Multivariable"
+                fecha:
+                  type: string
+                  format: date-time
+                  example: "2025-12-10T11:00:00Z"
+      responses:
+        '201':
+          description: Solicitud creada exitosamente
+        '401':
+          description: No autorizado
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

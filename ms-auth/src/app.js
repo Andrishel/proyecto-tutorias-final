@@ -3,29 +3,18 @@ const express = require('express');
 const config = require('./config');
 const authRouter = require('./api/routes/auth.routes');
 const errorHandler = require('./api/middlewares/errorHandler');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express'); 
+const YAML = require('yamljs');
+const path = require('path');
 
 const app = express();
 
-// Configuración de Swagger
-const swaggerOptions = {
-    definition: {
-    openapi: '3.0.0',
-    info: {
-        title: 'Microservicio de Autenticación (ms-auth)',
-        version: '1.0.0',
-        description: 'API para gestionar el login y registro de usuarios.',
-    },
-    servers: [
-        { url: 'http://localhost:8000' }, 
-    ],
-    },
-    apis: ['./src/api/routes/auth.routes.js'],
-};
+// CONFIGURACIÓN DE SWAGGER
+const swaggerPath = path.join(__dirname, '../docs/swagger.yaml');
+const swaggerDocument = YAML.load(swaggerPath);
 
-const swaggerDocs = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+// RUTA DE DOCUMENTACIÓN
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(express.json());
 app.use('/auth', authRouter);

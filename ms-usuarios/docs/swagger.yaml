@@ -1,0 +1,71 @@
+openapi: 3.0.0
+info:
+  title: Microservicio de Usuarios (ms-usuarios)
+  description: API para consultar información de estudiantes y tutores registrados.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001
+    description: Servidor Local (Docker)
+
+paths:
+  /usuarios/estudiantes/{id}:
+    get:
+      summary: Obtener estudiante por ID
+      description: Retorna los detalles de un estudiante específico.
+      tags:
+        - Usuarios
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID único del estudiante (ej. 'u2023001')
+          example: "u2023001"
+      responses:
+        '200':
+          description: Estudiante encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  nombre:
+                    type: string
+                  email:
+                    type: string
+        '404':
+          description: Estudiante no encontrado
+
+  /usuarios/tutores/{id}:
+    get:
+      summary: Obtener tutor por ID
+      description: Retorna los detalles de un tutor específico.
+      tags:
+        - Usuarios
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID único del tutor (ej. 't09876')
+          example: "t09876"
+      responses:
+        '200':
+          description: Tutor encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  nombre:
+                    type: string
+                  especialidad:
+                    type: string
+        '404':
+          description: Tutor no encontrado

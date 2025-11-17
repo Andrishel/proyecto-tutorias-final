@@ -1,0 +1,79 @@
+openapi: 3.0.0
+info:
+  title: Microservicio de Agenda (ms-agenda)
+  description: API para gestionar la disponibilidad de tutores y bloquear horarios.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3002
+    description: Servidor Local (Docker)
+
+paths:
+  /agenda/tutores/{id_tutor}/disponibilidad:
+    get:
+      summary: Consultar disponibilidad de un tutor
+      description: Verifica los horarios disponibles de un tutor específico.
+      tags:
+        - Agenda
+      parameters:
+        - in: path
+          name: id_tutor
+          schema:
+            type: string
+          required: true
+          description: ID del tutor (ej. 't09876')
+          example: "t09876"
+      responses:
+        '200':
+          description: Disponibilidad retornada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disponible:
+                    type: boolean
+                    description: Estado de disponibilidad
+
+  /agenda/tutores/{id_tutor}/bloquear:
+    post:
+      summary: Bloquear horario de un tutor
+      description: Crea un bloqueo en la agenda para que no se puedan agendar tutorías.
+      tags:
+        - Agenda
+      parameters:
+        - in: path
+          name: id_tutor
+          schema:
+            type: string
+          required: true
+          description: ID del tutor a bloquear
+          example: "t09876"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fechaInicio
+                - fechaFin
+                - motivo
+              properties:
+                fechaInicio:
+                  type: string
+                  format: date-time
+                  example: "2025-12-10T10:00:00Z"
+                fechaFin:
+                  type: string
+                  format: date-time
+                  example: "2025-12-10T12:00:00Z"
+                motivo:
+                  type: string
+                  example: "Consulta médica"
+      responses:
+        '201':
+          description: Bloqueo creado exitosamente
+        '400':
+          description: Error en los datos o solapamiento
+        '404':
+          description: Tutor no encontrado
