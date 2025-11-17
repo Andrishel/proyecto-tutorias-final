@@ -1,26 +1,41 @@
 // client-mobile-sim/index.js
-const yargs = require('yargs/yargs');
-const { hideBin } = require('yargs/helpers');
-const solicitarTutoriaScenario = require('./src/scenarios/solicitarTutoria');
+require('dotenv').config(); // Cargar .env
+const express = require('express');
+const path = require('path');
+const { solicitar } = require('./src/scenarios/solicitarTutoria');
 
-yargs(hideBin(process.argv))
-    .command(
-        'solicitar',
-        'Ejecuta el escenario de solicitud de tutoría de forma segura',
-        (yargs) => {
-            return yargs
-                // --- PARÁMETROS ACTUALIZADOS ---
-                .option('username', { describe: 'Nombre de usuario para login', type: 'string', demandOption: true })
-                .option('password', { describe: 'Contraseña para login', type: 'string', demandOption: true })
-                .option('idTutor', { describe: 'ID del tutor', type: 'string', demandOption: true })
-                .option('fecha', { describe: 'Fecha solicitada (ISO 8601)', type: 'string', demandOption: true })
-                .option('materia', { describe: 'Materia de la tutoría', type: 'string', demandOption: true })
-                .option('duracion', { describe: 'Duración en minutos', type: 'number', default: 60 });
-        },
-        (argv) => {
-            solicitarTutoriaScenario.run(argv);
+const app = express();
+const PORT = process.env.PORT || 8080;
+
+// Middlewares para parsear JSON y formularios
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos desde la carpeta 'public'
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Endpoint de API para recibir la solicitud del formulario
+app.post('/api/solicitar', async (req, res) => {
+    console.log(`[API] Recibida solicitud POST en /api/solicitar`);
+    try {
+        // req.body contiene los datos del formulario (username, password, idTutor, etc.)
+        const resultado = await solicitar(req.body);
+        // Éxito
+        res.status(201).json(resultado);
+    } catch (error) {
+        // Manejar errores
+        console.error(`[API] Error en /api/solicitar: ${error.message}`);
+        // Si el error viene de Axios (falla del backend), tendrá un 'response'
+        if (error.response) {
+            res.status(error.response.status).json({ error: error.response.data.error || 'Error del backend' });
+        } else {
+            // Error interno del cliente (ej. fallo de login)
+            res.status(500).json({ error: { message: error.message } });
         }
-    )
-    .demandCommand(1, 'Debes especificar un comando.')
-    .help()
-    .argv;
+    }
+});
+
+// Iniciar el servidor
+app.listen(PORT, () => {
+    console.log(`Cliente Simulador Interactivo corriendo en http://localhost:${PORT}`);
+});

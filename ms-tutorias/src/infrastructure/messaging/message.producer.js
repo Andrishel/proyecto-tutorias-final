@@ -2,47 +2,55 @@
 const amqp = require('amqplib');
 const { rabbitmqUrl } = require('../../config');
 
-// Variable para mantener la conexión y el canal
 let connection = null;
 let channel = null;
+const EXCHANGE_NAME = 'tracking_events_exchange'; // Nombre del exchange de tracking
 
-// Conectarse a RabbitMQ
 const connect = async () => {
     try {
         connection = await amqp.connect(rabbitmqUrl);
         channel = await connection.createChannel();
-        console.log('[MS_Tutorias] Conectado a RabbitMQ exitosamente.');
+
+        // Asegurarse que el exchange de tracking exista
+        await channel.assertExchange(EXCHANGE_NAME, 'fanout', { durable: true });
+
+        console.log('[MS_Tutorias] Conectado a RabbitMQ y exchange de tracking asegurado.');
     } catch (error) {
         console.error('[MS_Tutorias] Error al conectar con RabbitMQ:', error.message);
-        // Implementar lógica de reintento si es necesario
-        setTimeout(connect, 5000); // Reintentar en 5 segundos
+        setTimeout(connect, 5000);
     }
 };
 
-// Iniciar la conexión
 connect();
 
+// Función para publicar en una COLA (para notificaciones)
 const publishToQueue = async (queueName, messagePayload) => {
-    if (!channel) {
-        console.error('[MS_Tutorias] Canal de RabbitMQ no disponible. ¿Está conectado?');
-        return;
-    }
+    if (!channel) { return; }
     try {
-        // 1. Asegurarse que la cola exista (durable = los mensajes sobreviven reinicios de RabbitMQ)
         await channel.assertQueue(queueName, { durable: true });
-
-        // 2. Convertir el mensaje (objeto JS) a un Buffer JSON
         const messageBuffer = Buffer.from(JSON.stringify(messagePayload));
-
-        // 3. Enviar el mensaje a la cola (persistent = el mensaje se guarda en disco)
         channel.sendToQueue(queueName, messageBuffer, { persistent: true });
-
-        console.log(`[MS_Tutorias] Mensaje publicado en la cola '${queueName}':`, JSON.stringify(messagePayload));
+        console.log(`[MS_Tutorias] Mensaje publicado en la cola '${queueName}'`);
     } catch (error) {
-        console.error(`[MS_Tutorias] Error al publicar mensaje en RabbitMQ:`, error.message);
+        console.error(`[MS_Tutorias] Error al publicar en cola:`, error.message);
+    }
+};
+
+// --- NUEVA FUNCIÓN ---
+// Función para publicar en un EXCHANGE (para tracking)
+const publishTrackingEvent = async (payload) => {
+    if (!channel) { return; }
+    try {
+        const messageBuffer = Buffer.from(JSON.stringify(payload));
+        // Publicar en el exchange. El routing key ('') es ignorado por 'fanout'.
+        channel.publish(EXCHANGE_NAME, '', messageBuffer);
+        console.log(`[MS_Tutorias] Evento de tracking publicado:`, payload.message);
+    } catch (error) {
+        console.error(`[MS_Tutorias] Error al publicar evento de tracking:`, error.message);
     }
 };
 
 module.exports = {
-    publishToQueue
+    publishToQueue,
+    publishTrackingEvent // <-- Exportar la nueva función
 };

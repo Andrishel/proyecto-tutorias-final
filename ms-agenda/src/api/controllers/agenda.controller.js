@@ -1,32 +1,39 @@
 // ms-agenda/src/api/controllers/agenda.controller.js
 const agendaService = require('../../domain/services/agenda.service');
+const { track } = require('../../infrastructure/messaging/message.producer'); // <-- IMPORTAR TRACK
 
 const getDisponibilidad = async (req, res, next) => {
+    const cid = req.correlationId; // <-- Obtener Correlation ID
     try {
+        track(cid, `Verificando disponibilidad para tutor: ${req.params.id_tutor}`);
         const { id_tutor } = req.params;
-        const { fechaHora } = req.query; // ej: ?fechaHora=2025-10-22T14:00:00Z
+        const { fechaHora } = req.query;
 
         if (!fechaHora) {
-            const error = new Error('El parámetro "fechaHora" es requerido.');
-            error.statusCode = 400; // Bad Request
-            throw error;
+            throw { statusCode: 400, message: 'El parámetro "fechaHora" es requerido.'};
         }
 
         const resultado = await agendaService.verificarDisponibilidad(id_tutor, fechaHora);
+        track(cid, `Disponibilidad para tutor ${id_tutor}: ${resultado.disponible}`);
         res.status(200).json(resultado);
     } catch (error) {
+        track(cid, `Error en getDisponibilidad: ${error.message}`, 'ERROR');
         next(error);
     }
 };
 
 const postBloqueo = async (req, res, next) => {
+    const cid = req.correlationId; // <-- Obtener Correlation ID
     try {
+        track(cid, `Intentando bloquear agenda para tutor: ${req.params.id_tutor}`);
         const { id_tutor } = req.params;
-        const datosBloqueo = req.body; // { fechaInicio, duracionMinutos, idEstudiante }
+        const datosBloqueo = req.body;
 
         const nuevoBloqueo = await agendaService.crearBloqueo(id_tutor, datosBloqueo);
+        track(cid, `Agenda bloqueada exitosamente. Bloqueo ID: ${nuevoBloqueo.idbloqueo}`);
         res.status(201).json(nuevoBloqueo);
     } catch (error) {
+        track(cid, `Error en postBloqueo: ${error.message}`, 'ERROR');
         next(error);
     }
 };

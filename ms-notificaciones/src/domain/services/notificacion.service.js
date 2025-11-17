@@ -1,6 +1,7 @@
 // ms-notificaciones/src/domain/services/notificacion.service.js
 const { randomUUID } = require('crypto');
 const emailProvider = require('../../infrastructure/providers/email.provider');
+const { track } = require('../../infrastructure/messaging/message.producer'); // <-- IMPORTAR TRACK
 
 const enviarNotificacion = async (canal, datosNotificacion) => {
     const { destinatario, asunto, cuerpo } = datosNotificacion;
@@ -43,29 +44,42 @@ const enviarNotificacion = async (canal, datosNotificacion) => {
 // Simplificamos: este servicio ahora solo sabe enviar emails basado en el payload
 const enviarEmailNotificacion = async (payloadNotificacion) => {
     const { destinatario, asunto, cuerpo, correlationId } = payloadNotificacion;
+    const cid = correlationId || randomUUID(); // Asegurar que tenemos un CID
 
-    // Log con el CID
-    console.log(`[MS_Notificaciones Service] - CID: ${correlationId || 'N/A'} - Procesando email para: ${destinatario}`);
+    try {
 
-    if (!destinatario || !asunto || !cuerpo) {
-        const error = new Error('Datos incompletos para enviar email: se necesita destinatario, asunto y cuerpo.');
-        error.statusCode = 400; // Bad Request
-        throw error;
+        track(cid, `Procesando email para: ${destinatario}`);
+        // Log con el CID
+        console.log(`[MS_Notificaciones Service] - CID: ${correlationId || 'N/A'} - Procesando email para: ${destinatario}`);
+
+        if (!destinatario || !asunto || !cuerpo) {
+            const error = new Error('Datos incompletos para enviar email: se necesita destinatario, asunto y cuerpo.');
+            error.statusCode = 400; // Bad Request
+            throw new Error('Datos incompletos para enviar email');
+        }
+
+        const resultadoEnvio = await emailProvider.enviarEmail(destinatario, asunto, cuerpo);
+        
+
+        const log = {
+            logId: randomUUID(),
+            canal: 'email',
+            destinatario: destinatario,
+            timestamp: new Date().toISOString(),
+            estado: resultadoEnvio.estado,
+            correlationId: correlationId
+        };
+
+        track(cid, `Email simulado enviado a: ${destinatario}`);
+        console.log(`[MS_Notificaciones Service] - CID: ${correlationId || 'N/A'} - Email simulado. Log:`, JSON.stringify(log));
+        return log;
+
+    } catch (error) {
+        track(cid, `Error al enviar email: ${error.message}`, 'ERROR');
+        throw error; // El consumidor (en app.js) manejará el nack()
     }
-
-    const resultadoEnvio = await emailProvider.enviarEmail(destinatario, asunto, cuerpo);
-
-    const log = {
-        logId: randomUUID(),
-        canal: 'email',
-        destinatario: destinatario,
-        timestamp: new Date().toISOString(),
-        estado: resultadoEnvio.estado,
-        correlationId: correlationId
-    };
-    console.log(`[MS_Notificaciones Service] - CID: ${correlationId || 'N/A'} - Email simulado. Log:`, JSON.stringify(log));
-    return log;
 };
+
 
 module.exports = {
     //enviarNotificacion

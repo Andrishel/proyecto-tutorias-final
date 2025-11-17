@@ -6,8 +6,7 @@ const errorHandler = require('./api/middlewares/errorHandler'); // Reutilizamos 
 const correlationIdMiddleware = require('./api/middlewares/correlationId.middleware.js');
 const amqp = require('amqplib'); 
 const notificacionService = require('./domain/services/notificacion.service'); //  Importar el servicio de notificaciones
-
-// REQUIRES PARA SWAGGER
+const messageProducer = require('./infrastructure/messaging/message.producer'); 
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
@@ -20,6 +19,7 @@ const app = express();
 const swaggerPath = path.join(__dirname, '../docs/swagger.yaml');
 const swaggerDocument = YAML.load(swaggerPath);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 app.use(express.json());
 app.use(correlationIdMiddleware); // Middleware para manejar el Correlation ID
 app.use('/notificaciones', notificacionesRouter);
@@ -74,12 +74,9 @@ const startConsumer = async () => {
     }
 };
 
-// app.listen(PORT, () => {
-//     console.log(`MS_Notificaciones escuchando en el puerto ${PORT}`);
-// });
-
 // Iniciar el servidor y el consumidor de RabbitMQ
 app.listen(config.port, () => {
     console.log(`MS_Notificaciones (API) escuchando en el puerto ${config.port}`);
-    startConsumer(); // <-- Iniciar el consumidor
+    startConsumer();
+    messageProducer.connect(); // <-- INICIAR CONEXIÓN DEL PRODUCTOR (Docente)
 });
