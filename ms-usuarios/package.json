@@ -16,12 +16,9 @@
   "author": "edsaana",
   "license": "ISC",
   "dependencies": {
-<<<<<<< HEAD
     "cors": "^2.8.5",
-=======
     "amqplib": "^0.10.9",
     "dotenv": "^17.2.3",
->>>>>>> actualizacion-telemetria
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",

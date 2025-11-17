@@ -11,6 +11,7 @@ services:
       - PORT=4000
       - JWT_SECRET=ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD
       - JWT_EXPIRES_IN=1h
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq:5672
 
   # --- Servicio de Usuarios ---
   ms-usuarios:

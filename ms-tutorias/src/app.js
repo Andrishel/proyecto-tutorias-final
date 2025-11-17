@@ -1,4 +1,5 @@
 // ms-tutorias/src/app.js
+
 const express = require('express');
 const config = require('./config');
 const tutoriasRouter = require('./api/routes/tutorias.routes');
@@ -24,5 +25,5 @@ app.use(errorHandler);
 
 app.listen(config.port, () => {
     console.log(`MS_Tutorias (Orquestador) escuchando en el puerto ${config.port}`);
-    messageProducer.connect(); 
+    messageProducer.connect();
 });
