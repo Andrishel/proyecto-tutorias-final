@@ -7,8 +7,10 @@ const verificarDisponibilidad = async (idTutor, fechaHoraSolicitada) => {
     const bloqueosDelTutor = await agendaRepository.findBloqueosByTutor(idTutor);
 
     const hayConflicto = bloqueosDelTutor.some(bloqueo => {
-        const inicioBloqueo = bloqueo.fechaInicio;
-        const finBloqueo = new Date(inicioBloqueo.getTime() + bloqueo.duracionMinutos * 60000);
+        const fechaInicioRaw = bloqueo.fechainicio || bloqueo.fechaInicio;
+        const duracionRaw = bloqueo.duracionminutos || bloqueo.duracionMinutos;
+        const inicioBloqueo = new Date(fechaInicioRaw);
+        const finBloqueo = new Date(inicioBloqueo.getTime() + duracionRaw * 60000);
 
         // La fecha solicitada cae dentro de un bloqueo existente
         return fechaSolicitada >= inicioBloqueo && fechaSolicitada < finBloqueo;
