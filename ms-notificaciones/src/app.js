@@ -2,11 +2,13 @@
 const express = require('express');
 const config = require('./config');
 const notificacionesRouter = require('./api/routes/notificaciones.routes');
-const errorHandler = require('./api/middlewares/errorHandler'); // Reutilizamos el mismo middleware
+const errorHandler = require('./api/middlewares/errorHandler');
 const correlationIdMiddleware = require('./api/middlewares/correlationId.middleware.js');
 const amqp = require('amqplib'); 
-const notificacionService = require('./domain/services/notificacion.service'); //  Importar el servicio de notificaciones
-const messageProducer = require('./infrastructure/messaging/message.producer'); 
+const notificacionService = require('./domain/services/notificacion.service');
+const messageProducer = require('./infrastructure/messaging/message.producer'); // <-- Productor del Docente
+
+// REQUIRES PARA SWAGGER
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
@@ -25,47 +27,61 @@ app.use(correlationIdMiddleware); // Middleware para manejar el Correlation ID
 app.use('/notificaciones', notificacionesRouter);
 app.use(errorHandler);
 
-// --- Lógica del Consumidor de RabbitMQ ---
+// --- MISION 4 - Lógica del Consumidor de RabbitMQ  ---
 const startConsumer = async () => {
     let connection;
     try {
         connection = await amqp.connect(config.rabbitmqUrl);
         const channel = await connection.createChannel();
 
+        // 1. Declaramos el exchange de meurtos (DLX) y la cola de muertos (DLQ)
+        const dlxName = 'notificaciones_dlx';
+        const dlqName = 'notificaciones_dlq';
+
+        await channel.assertExchange(dlxName, 'fanout', { durable: true });
+        await channel.assertQueue(dlqName, { durable: true });
+        await channel.bindQueue(dlqName, dlxName, '');
+        console.log('[MS_Notificaciones] Infraestructura DLQ configurada.');
+
+        // 2. Declarar la Cola Principal conectada al DLX
         const queueName = 'notificaciones_email_queue';
-        await channel.assertQueue(queueName, { durable: true });
+        await channel.assertQueue(queueName, {
+            durable: true,
+            arguments: {
+                'x-dead-letter-exchange': dlxName // <-- Por si falle se va por aui
+            }
+        });
 
-        // prefetch(1) asegura que el worker solo tome 1 mensaje a la vez.
-        // No tomará el siguiente hasta que haga 'ack' (acuse) del actual.
         channel.prefetch(1); 
-
         console.log(`[MS_Notificaciones] Esperando mensajes en la cola: ${queueName}`);
 
         channel.consume(queueName, async (msg) => {
             if (msg !== null) {
                 let payload;
                 try {
-                    // 1. Parsear el mensaje
+                    // Intentamos parsear. Si no es JSON válido, fallará y se irá al catch
                     payload = JSON.parse(msg.content.toString());
+                    
                     console.log(`[MS_Notificaciones] Mensaje recibido de RabbitMQ:`, JSON.stringify(payload));
 
-                    // 2. Procesar el mensaje usando nuestro servicio
+                    // Procesar el mensaje
                     await notificacionService.enviarEmailNotificacion(payload);
 
-                    // 3. Confirmar (ack) que el mensaje fue procesado exitosamente
+                    // Confirmar éxito
                     channel.ack(msg);
                     console.log(`[MS_Notificaciones] Mensaje procesado y confirmado (ack).`);
 
                 } catch (error) {
-                    console.error(`[MS_Notificaciones] Error al procesar mensaje: ${error.message}`, payload);
-                    // 4. Rechazar (nack) el mensaje. false = no volver a encolar (o true si quieres reintentar)
-                    // Podríamos moverlo a una cola de "dead-letter" (DLQ) en un futuro.
-                    channel.nack(msg, false, false);
-                    console.log(`[MS_Notificaciones] Mensaje rechazado (nack).`);
+                    console.error(`[MS_Notificaciones] ERROR FATAL al procesar mensaje: ${error.message}`);
+                    
+                    // 3. RECHAZAR EL MENSAJE (NACK) SIN REENCOLAR
+                    // Al poner 'requeue: false', RabbitMQ lo enviará automáticamente a la DLQ
+                    channel.nack(msg, false, false); 
+                    console.log(`[MS_Notificaciones] Mensaje enviado a DLQ (Dead Letter Queue).`);
                 }
             }
         }, {
-            noAck: false // Importante: Requerimos confirmación manual (ack/nack)
+            noAck: false // Importante: Confirmación manual activada
         });
 
     } catch (error) {
@@ -78,5 +94,5 @@ const startConsumer = async () => {
 app.listen(config.port, () => {
     console.log(`MS_Notificaciones (API) escuchando en el puerto ${config.port}`);
     startConsumer();
-    messageProducer.connect(); // <-- INICIAR CONEXIÓN DEL PRODUCTOR (Docente)
+    messageProducer.connect(); // <-- Conexión de telemetría
 });
