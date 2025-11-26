@@ -63,6 +63,7 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq/
 
   # --- Herramienta de Chaos Engineering (Misión 2) ---
+
   toxiproxy:
     image: ghcr.io/shopify/toxiproxy:2.5.0
     container_name: toxiproxy
@@ -71,6 +72,10 @@ services:
       - "8001:8001" # Puerto proxy para ms-usuarios
     depends_on:
       - ms-usuarios
+
+
+
+
 
   # --- Servicio de Notificaciones ---
   ms-notificaciones:
