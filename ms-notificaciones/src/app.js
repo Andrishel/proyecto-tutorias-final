@@ -6,9 +6,8 @@ const errorHandler = require('./api/middlewares/errorHandler');
 const correlationIdMiddleware = require('./api/middlewares/correlationId.middleware.js');
 const amqp = require('amqplib'); 
 const notificacionService = require('./domain/services/notificacion.service');
-const messageProducer = require('./infrastructure/messaging/message.producer'); // <-- Productor del Docente
-
-// REQUIRES PARA SWAGGER
+const messageProducer = require('./infrastructure/messaging/message.producer'); 
+const client = require('prom-client');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
@@ -16,6 +15,19 @@ const path = require('path');
 const PORT = process.env.PORT || 3003;
 
 const app = express();
+
+// Registro de métricas Prometheus
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+// DEFINICIÓN DE LA MÉTRICA  
+const httpRequestDurationMicroseconds = new client.Histogram({
+    name: 'http_request_duration_seconds',
+    help: 'Duration of HTTP requests in seconds',
+    labelNames: ['method', 'route', 'code'],
+    buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10]
+});
+register.registerMetric(httpRequestDurationMicroseconds);
 
 // CONFIGURACIÓN YAML SWAGGER
 const swaggerPath = path.join(__dirname, '../docs/swagger.yaml');
@@ -26,6 +38,15 @@ app.use(express.json());
 app.use(correlationIdMiddleware); // Middleware para manejar el Correlation ID
 app.use('/notificaciones', notificacionesRouter);
 app.use(errorHandler);
+
+// Middleware para las métricas de Prometheus
+app.use((req, res, next) => {
+    const end = httpRequestDurationMicroseconds.startTimer();
+    res.on('finish', () => {
+    end({ method: req.method, route: req.path, code: res.statusCode });
+    });
+    next();
+});
 
 // --- MISION 4 - Lógica del Consumidor de RabbitMQ  ---
 const startConsumer = async () => {
@@ -67,7 +88,7 @@ const startConsumer = async () => {
                     // Procesar el mensaje
                     await notificacionService.enviarEmailNotificacion(payload);
 
-                    // Confirmar éxito
+                    // Confirmar éxito 
                     channel.ack(msg);
                     console.log(`[MS_Notificaciones] Mensaje procesado y confirmado (ack).`);
 
@@ -89,6 +110,12 @@ const startConsumer = async () => {
         setTimeout(startConsumer, 5000); // Reintentar conexión en 5 segundos
     }
 };
+
+// Endpoint para las metricas de Prometheus
+app.get('/metrics', async (req, res) => {
+    res.setHeader('Content-Type', register.contentType);
+    res.send(await register.metrics());
+});
 
 // Iniciar el servidor y el consumidor de RabbitMQ
 app.listen(config.port, () => {

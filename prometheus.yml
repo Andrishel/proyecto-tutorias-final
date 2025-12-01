@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'ms-tutorias'
+    static_configs:
+      - targets: ['ms-tutorias:3000']
+  
+  - job_name: 'ms-usuarios'
+    static_configs:
+      - targets: ['ms-usuarios:3001']
+ 
+  - job_name: 'ms-agenda'
+    static_configs:
+      - targets: ['ms-agenda:3002']
+  
+  - job_name: 'ms-notificaciones'
+    static_configs:
+      - targets: ['ms-notificaciones:3003']
+  
+  - job_name: 'ms-auth'
+    static_configs:
+      - targets: ['ms-auth:4000']
