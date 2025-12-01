@@ -1,0 +1,117 @@
+# kubernetes-manifests/databases.yaml
+
+# --- db usuarios ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-usuarios 
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: db-usuarios
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-usuarios
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-usuarios
+  template:
+    metadata:
+      labels:
+        app: db-usuarios
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14-alpine
+          env:
+            - name: POSTGRES_USER
+              value: "user_usuarios"
+            - name: POSTGRES_PASSWORD
+              value: "password_usuarios"
+            - name: POSTGRES_DB
+              value: "db_usuarios"
+          ports:
+            - containerPort: 5432
+
+---
+# --- db agenda ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-agenda
+spec:
+  ports:
+    - port: 5432 
+  selector:
+    app: db-agenda
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-agenda
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-agenda
+  template:
+    metadata:
+      labels:
+        app: db-agenda
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14-alpine
+          env:
+            - name: POSTGRES_USER
+              value: "user_agenda"
+            - name: POSTGRES_PASSWORD
+              value: "password_agenda"
+            - name: POSTGRES_DB
+              value: "db_agenda"
+          ports:
+            - containerPort: 5432
+
+---
+# --- db tutorias ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-tutorias
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: db-tutorias
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-tutorias
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-tutorias
+  template:
+    metadata:
+      labels:
+        app: db-tutorias
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14-alpine
+          env:
+            - name: POSTGRES_USER
+              value: "user_tutorias"
+            - name: POSTGRES_PASSWORD
+              value: "password_tutorias"
+            - name: POSTGRES_DB
+              value: "db_tutorias"
+          ports:
+            - containerPort: 5432

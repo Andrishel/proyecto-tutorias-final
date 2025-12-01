@@ -121,7 +121,7 @@ services:
       # --- CAMBIO CRÍTICO DE NETWORKING - Identificacion y Nombramiento de Servicios ---
       # Dentro de la red de Docker, los servicios se comunican usando su nombre de servicio,
       # no 'localhost'. Docker Compose se encarga de resolver estos nombres.
-      - MS_USUARIOS_URL=http://ms-tutorias:3001/usuarios
+      - MS_USUARIOS_URL=http://ms-usuarios:3001/usuarios
       - MS_AGENDA_URL=http://ms-agenda:3002/agenda
       - MS_NOTIFICACIONES_URL=http://ms-notificaciones:3003/notificaciones
       - JWT_SECRET=ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD

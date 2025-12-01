@@ -23,7 +23,12 @@ const connect = async () => {
 const publishToQueue = async (queueName, messagePayload) => {
     if (!channel) return;
     try {
-        await channel.assertQueue(queueName, { durable: true });
+        await channel.assertQueue(queueName, { 
+            durable: true,
+            arguments: {
+                'x-dead-letter-exchange': 'notificaciones_dlx'
+            }
+        });
         const messageBuffer = Buffer.from(JSON.stringify(messagePayload));
         channel.sendToQueue(queueName, messageBuffer, { persistent: true });
         console.log(`[MS_Tutorias] Mensaje publicado en la cola '${queueName}'`);
